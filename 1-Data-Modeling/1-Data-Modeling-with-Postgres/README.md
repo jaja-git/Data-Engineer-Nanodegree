@@ -40,7 +40,6 @@ In addition to the data files, the project workspace includes six files:
 - README.md provides discussion on your project.
 
 
-
 ##  Project Steps
 
 Below are steps you can follow to complete the project:
