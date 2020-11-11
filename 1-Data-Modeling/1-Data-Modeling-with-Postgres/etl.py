@@ -18,7 +18,7 @@ def get_files(filepath):
 
 def process_song_file(cur, filepath):
     # open song file
-    filepath = "/home/workspace/data/song_data"
+    filepath = "data/song_data"
     df = pd.DataFrame()
     for i in range(len(get_files(filepath))):
         df = df.append(pd.read_json(get_files(filepath)[i], lines = True))
@@ -35,7 +35,7 @@ def process_song_file(cur, filepath):
 
 def process_log_file(cur, filepath):
     # open log file
-    filepath = "/home/workspace/data/log_data/"
+    filepath = "data/log_data/"
     data = []
     for line in open(get_files(filepath)[0], 'r'):
         data.append(json.loads(line))
@@ -78,7 +78,7 @@ def process_log_file(cur, filepath):
 
         # insert songplay record
         songplay_data = (index, row.ts, row.userId, row.level, songid, artistid, 
-                         row.sessionId, row.location, row.userAgent)
+                        row.sessionId, row.location, row.userAgent)
         cur.execute(songplay_table_insert, songplay_data)
         
 
