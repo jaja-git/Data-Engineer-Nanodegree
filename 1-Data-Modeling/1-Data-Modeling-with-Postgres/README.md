@@ -51,6 +51,7 @@ Below are steps you can follow to complete the project:
 - Run test.ipynb to confirm the creation of your tables with the correct columns. Make sure to click "Restart kernel" to close the connection to the database after running this notebook.
 - Build ETL Processes
 
+
 ## Usage  
 
 - Run `create_table.py` to create the database and tables.
