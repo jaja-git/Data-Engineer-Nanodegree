@@ -4,6 +4,7 @@ import psycopg2
 import pandas as pd
 import json
 from sql_queries import *
+from datetime import datetime as dt
 
 
 def get_files(filepath):
@@ -77,7 +78,7 @@ def process_log_file(cur, filepath):
             songid, artistid = None, None
 
         # insert songplay record
-        songplay_data = (index, row.ts, row.userId, row.level, songid, artistid, 
+        songplay_data = (dt.utcfromtimestamp(row.ts/1000), row.userId, row.level, songid, artistid, 
                         row.sessionId, row.location, row.userAgent)
         cur.execute(songplay_table_insert, songplay_data)
         
