@@ -7,22 +7,9 @@ from sql_queries import *
 from datetime import datetime as dt
 
 
-def get_files(filepath):
-    all_files = []
-    for root, dirs, files in os.walk(filepath):
-        files = glob.glob(os.path.join(root,'*.json'))
-        for f in files :
-            all_files.append(os.path.abspath(f))
-    
-    return all_files
-
-
 def process_song_file(cur, filepath):
     # open song file
-    filepath = "data/song_data"
-    df = pd.DataFrame()
-    for i in range(len(get_files(filepath))):
-        df = df.append(pd.read_json(get_files(filepath)[i], lines = True))
+    df = pd.read_json(filepath, lines = True)
 
     # insert song record
     song_data = df[['song_id', 'title', 'artist_id','year','duration']].values.tolist()
@@ -36,13 +23,8 @@ def process_song_file(cur, filepath):
 
 def process_log_file(cur, filepath):
     # open log file
-    filepath = "data/log_data/"
-    data = []
-    for line in open(get_files(filepath)[0], 'r'):
-        data.append(json.loads(line))
-    df = pd.DataFrame() 
-    df = df.append(data)
-    
+    df = pd.read_json(filepath, lines = True)
+
     # filter by NextSong action
     df = df[df['page']=="NextSong"]
 
