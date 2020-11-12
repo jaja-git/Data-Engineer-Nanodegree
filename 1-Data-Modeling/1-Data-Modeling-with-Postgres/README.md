@@ -55,4 +55,4 @@ Below are steps you can follow to complete the project:
 ## Usage  
 
 - Run `create_table.py` to create the database and tables.
-- Run 'etl.py' to load data.
+- Run `etl.py` to load data.
