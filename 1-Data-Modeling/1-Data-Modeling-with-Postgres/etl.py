@@ -8,6 +8,10 @@ from datetime import datetime as dt
 
 
 def process_song_file(cur, filepath):
+    """
+    This function loads song data contained in the folder specified by filepath, 
+    turns it into a dataframe and inserts rows into the songs and artists tables.
+    """
     # open song file
     df = pd.read_json(filepath, lines = True)
 
@@ -22,6 +26,10 @@ def process_song_file(cur, filepath):
 
 
 def process_log_file(cur, filepath):
+    """
+    This function loads log data contained in the folder specified by filepath, 
+    turns it into a dataframe and inserts rows into the time and songplay tables.
+    """
     # open log file
     df = pd.read_json(filepath, lines = True)
     
@@ -67,6 +75,10 @@ def process_log_file(cur, filepath):
 
 
 def process_data(cur, conn, filepath, func):
+    """
+    This function finds all files contained in filepath folder and 
+    runs the dedicated processing function for each of the present files.
+    """
     # get all files matching extension from directory
     all_files = []
     for root, dirs, files in os.walk(filepath):
