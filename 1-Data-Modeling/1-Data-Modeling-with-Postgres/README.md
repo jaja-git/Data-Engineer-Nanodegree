@@ -55,6 +55,7 @@ Below are steps you can follow to complete the project:
 ## Usage  
 
 - Download [Docker](https://www.docker.com/products/docker-desktop) if you don't have it installed.
-- Run `docker-compose up -d`.
-- Run `create_table.py` to create the tables.
+- Run `docker-compose up -d` to get the Docker Container for Postgres running locally.
+- Run `create_table.py` to create the db.
 - Run `etl.py` to load data.
+- Use `docker-compose down` to close the Postgres container.
