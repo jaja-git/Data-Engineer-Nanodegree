@@ -58,4 +58,5 @@ Below are steps you can follow to complete the project:
 - Run `docker-compose up -d` to get the Docker Container for Postgres running locally.
 - Run `create_table.py` to create the db.
 - Run `etl.py` to load data.
+- Run `psql "postgresql://student:student@127.0.0.1/sparkifydb"` to query the data via psql.
 - Use `docker-compose down` to close the Postgres container.
