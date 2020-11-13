@@ -54,5 +54,7 @@ Below are steps you can follow to complete the project:
 
 ## Usage  
 
-- Run `create_table.py` to create the database and tables.
+- Download [Docker](https://www.docker.com/products/docker-desktop) if you don't have it installed.
+- Run `docker-compose up -d`.
+- Run `create_table.py` to create the tables.
 - Run `etl.py` to load data.
