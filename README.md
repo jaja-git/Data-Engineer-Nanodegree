@@ -7,7 +7,7 @@ Please refer to the individual projects and their readme files.
 Learn to create relational and NoSQL data models to fit the diverse needs of data consumers. Use ETL to build databases in PostgreSQL and Apache Cassandra.
 
 - [Data Modeling with Postgres](https://github.com/jaja-git/Data-Engineer-Nanodegree/blob/proj1/1-Data-Modeling/1-Data-Modeling-with-Postgres/README.md)
-- Data Modeling with Apache Cassandra
+- [Data Modeling with Apache Cassandra](https://github.com/jaja-git/Data-Engineer-Nanodegree/blob/proj1/1-Data-Modeling/2-Data-Modeling-with-Apache-Cassandra/README.md)
 
 ### Cloud Data Warehouses
 Sharpen your data warehousing skills and deepen your understanding of data infrastructure. Create cloud-based data warehouses on Amazon Web Services (AWS).
