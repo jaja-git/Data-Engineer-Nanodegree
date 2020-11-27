@@ -53,6 +53,11 @@ The log files in the dataset you'll be working with are partitioned by year and 
 
 ### Usage
 
+- Run `create_cluster.py` to create the Redshift cluster and IAM role.  
+- Run `create_tables.py` to create the tables.
+
+
+
 To connect to the db via psql, run  
 `psql -h redshift-cluster.ce5jntlwthav.us-east-1.redshift.amazonaws.com -U awsuser -d dev -p 5439`
 

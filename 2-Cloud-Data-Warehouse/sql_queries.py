@@ -115,13 +115,13 @@ staging_events_copy = ("""
 COPY staging_events FROM 's3://udacity-dend/log-data'
   credentials 'aws_iam_role={}'
   gzip delimiter ';'    
-""").format()
+""").format(config['IAM_ROLE']['ARN'])
 
 staging_songs_copy = ("""
 COPY staging_events FROM 's3://udacity-dend/song-data'
   credentials 'aws_iam_role={}'
   gzip delimiter ';'    
-""").format()
+""").format(config['IAM_ROLE']['ARN'])
 
 # FINAL TABLES
 
