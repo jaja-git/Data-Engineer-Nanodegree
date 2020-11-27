@@ -1,8 +1,0 @@
-.DS_Store
-__pycache__
-.pyc
-data/
-.ipynb_checkpoints
-*.cfg
-dwh.cfg
-2-Cloud-Data-Warehouse/dwh.cfg
