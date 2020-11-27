@@ -52,3 +52,7 @@ The log files in the dataset you'll be working with are partitioned by year and 
 
 
 ### Usage
+
+To connect to the db via psql, run  
+`psql -h redshift-cluster.ce5jntlwthav.us-east-1.redshift.amazonaws.com -U awsuser -d dev -p 5439`
+

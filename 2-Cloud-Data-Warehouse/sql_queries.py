@@ -19,13 +19,20 @@ time_table_drop = "DROP TABLE IF EXISTS time;"
 
 staging_events_table_create= ("""
 CREATE TABLE staging_events (
-
+    artist varchar,
+    auth varchar,
+    first_name varchar,
+    last_name varchar
 )
 """)
 
 staging_songs_table_create = ("""
 CREATE TABLE staging_songs (
-
+    song_id varchar,
+    title varchar,
+    artist_id varchar,
+    year int,
+    duration int
 )
 """)
 
