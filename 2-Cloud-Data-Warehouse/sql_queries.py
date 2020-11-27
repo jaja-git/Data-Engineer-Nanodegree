@@ -1,6 +1,5 @@
 import configparser
 
-
 # CONFIG
 config = configparser.ConfigParser()
 config.read('dwh.cfg')
@@ -22,17 +21,35 @@ CREATE TABLE staging_events (
     artist varchar,
     auth varchar,
     first_name varchar,
-    last_name varchar
+    gender varchar,
+    item_in_session int,
+    last_name varchar,
+    length float,
+    level varchar,
+    location varchar,
+    method varchar,
+    page varchar,
+    registration bigint,
+    session_id varchar,
+    song varchar,
+    status int,
+    ts bigint,
+    user_agent varchar,
+    user_id int
 )
 """)
 
 staging_songs_table_create = ("""
 CREATE TABLE staging_songs (
+    num_songs int,
+    artist_id varchar,
+    artist_latitude float,
+    artist_longitude float,
+    artist_location varchar,
+    artist_name varchar,
     song_id varchar,
     title varchar,
-    artist_id varchar,
-    year int,
-    duration int
+    duration float
 )
 """)
 
