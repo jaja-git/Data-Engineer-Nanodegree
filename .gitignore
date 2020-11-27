@@ -3,4 +3,6 @@ __pycache__
 .pyc
 data/
 .ipynb_checkpoints
-.cfg
+*.cfg
+dwh.cfg
+2-Cloud-Data-Warehouse/dwh.cfg
