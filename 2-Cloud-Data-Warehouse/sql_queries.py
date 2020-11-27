@@ -112,9 +112,15 @@ CREATE TABLE time (
 # STAGING TABLES
 
 staging_events_copy = ("""
+COPY staging_events FROM 's3://udacity-dend/log-data'
+  credentials 'aws_iam_role={}'
+  gzip delimiter ';'    
 """).format()
 
 staging_songs_copy = ("""
+COPY staging_events FROM 's3://udacity-dend/song-data'
+  credentials 'aws_iam_role={}'
+  gzip delimiter ';'    
 """).format()
 
 # FINAL TABLES
