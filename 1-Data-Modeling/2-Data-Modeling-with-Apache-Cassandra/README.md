@@ -19,9 +19,9 @@ Both the modelling and the ETL take place in the Jupyter notebook named `project
 ### Project Step
 
 **Modeling your NoSQL database or Apache Cassandra database**  
-- Designing tables to answer specific queries
-- Writing Apache Cassandra CREATE KEYSPACE & CREATE TABLE statements
-- Loading the data with INSERT statement for each of the tables
+- Design tables to answer specific queries
+- Write Apache Cassandra CREATE KEYSPACE & CREATE TABLE statements
+- Load the data with INSERT statement for each of the tables
 
 **Build ETL Pipeline**
 - Iterate through each event file in event_data to process and create a new CSV file in Python
