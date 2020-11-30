@@ -18,23 +18,23 @@ time_table_drop = "DROP TABLE IF EXISTS time;"
 
 staging_events_table_create= ("""
 CREATE TABLE staging_events (
-    artist varchar,
-    auth varchar,
-    first_name varchar,
-    gender varchar,
+    artist text,
+    auth text,
+    first_name text,
+    gender text,
     item_in_session int,
-    last_name varchar,
-    length float,
-    level varchar,
-    location varchar,
-    method varchar,
-    page varchar,
-    registration bigint,
-    session_id varchar,
-    song varchar,
+    last_name text,
+    length decimal,
+    level text,
+    location text,
+    method text,
+    page text,
+    registration decimal,
+    session_id int,
+    song text,
     status int,
     ts bigint,
-    user_agent varchar,
+    user_agent text,
     user_id int
 )
 """)
@@ -42,46 +42,46 @@ CREATE TABLE staging_events (
 staging_songs_table_create = ("""
 CREATE TABLE staging_songs (
     num_songs int,
-    artist_id varchar,
-    artist_latitude float,
-    artist_longitude float,
-    artist_location varchar,
-    artist_name varchar,
-    song_id varchar,
-    title varchar,
-    duration float
+    artist_id text,
+    artist_latitude numeric,
+    artist_longitude numeric,
+    artist_location text,
+    artist_name text,
+    song_id text,
+    title text,
+    duration numeric
 )
 """)
 
 songplay_table_create = ("""
 CREATE TABLE songplays (
-    songplay_id varchar,
+    songplay_id text,
     start_time timestamp,
-    user_id varchar,
+    user_id text,
     level int,
-    song_id varchar,
-    artist_id varchar,
-    session_id varchar,
-    location varchar,
-    user_agent varchar
+    song_id text,
+    artist_id text,
+    session_id text,
+    location text,
+    user_agent text
 )
 """)
 
 user_table_create = ("""
 CREATE TABLE users (
-    user_id varchar,
-    first_name varchar,
-    last_name varchar,
-    gender varchar,
+    user_id text,
+    first_name text,
+    last_name text,
+    gender text,
     level int
 )
 """)
 
 song_table_create = ("""
 CREATE TABLE songs (
-    song_id varchar,
-    title varchar,
-    artist_id varchar,
+    song_id text,
+    title text,
+    artist_id text,
     year int,
     duration int
 )
@@ -89,11 +89,11 @@ CREATE TABLE songs (
 
 artist_table_create = ("""
 CREATE TABLE artists (
-    artist_id varchar,
-    name varchar,
-    location varchar,
-    latitude float,
-    longitude float
+    artist_id text,
+    name text,
+    location text,
+    latitude numeric,
+    longitude numeric
 )
 """)
 
@@ -105,23 +105,32 @@ CREATE TABLE time (
     week int, 
     month int,
     year int,
-    weekday varchar
+    weekday text
 )
 """)
 
 # STAGING TABLES
 
 staging_events_copy = ("""
-COPY staging_events FROM 's3://udacity-dend/log-data'
-  credentials 'aws_iam_role={}'
-  gzip delimiter ';'    
-""").format(config['IAM_ROLE']['ARN'])
+                        COPY staging_events
+                        FROM {}
+                        credentials 'aws_iam_role={}'
+                        json 'auto'
+                        EMPTYASNULL
+                        BLANKSASNULL
+                    """).format(config['S3']['LOG_DATA'], 
+                                config['IAM_ROLE']['ARN'])
+
 
 staging_songs_copy = ("""
-COPY staging_events FROM 's3://udacity-dend/song-data'
-  credentials 'aws_iam_role={}'
-  gzip delimiter ';'    
-""").format(config['IAM_ROLE']['ARN'])
+                     COPY staging_events 
+                     FROM {}
+                     credentials 'aws_iam_role={}'
+                     json 'auto'
+                     EMPTYASNULL
+                     BLANKSASNULL
+                    """).format(config['S3']['SONG_DATA'], 
+                                config['IAM_ROLE']['ARN'])
 
 # FINAL TABLES
 
@@ -144,5 +153,5 @@ time_table_insert = ("""
 
 create_table_queries = [staging_events_table_create, staging_songs_table_create, songplay_table_create, user_table_create, song_table_create, artist_table_create, time_table_create]
 drop_table_queries = [staging_events_table_drop, staging_songs_table_drop, songplay_table_drop, user_table_drop, song_table_drop, artist_table_drop, time_table_drop]
-copy_table_queries = [staging_events_copy, staging_songs_copy]
+copy_table_queries = [staging_events_copy, staging_songs_copy] 
 insert_table_queries = [songplay_table_insert, user_table_insert, song_table_insert, artist_table_insert, time_table_insert]
