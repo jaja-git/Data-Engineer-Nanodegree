@@ -24,12 +24,12 @@ CREATE TABLE staging_events (
     gender text,
     item_in_session int,
     last_name text,
-    length decimal,
+    duration numeric,
     level text,
     location text,
     method text,
     page text,
-    registration decimal,
+    registration numeric,
     session_id int,
     song text,
     status int,
@@ -41,15 +41,16 @@ CREATE TABLE staging_events (
 
 staging_songs_table_create = ("""
 CREATE TABLE staging_songs (
-    num_songs int,
     artist_id text,
     artist_latitude numeric,
+    artist_location text,    
     artist_longitude numeric,
-    artist_location text,
     artist_name text,
+    duration numeric,
+    num_songs int,
     song_id text,
     title text,
-    duration numeric
+    year int
 )
 """)
 
@@ -112,24 +113,26 @@ CREATE TABLE time (
 # STAGING TABLES
 
 staging_events_copy = ("""
-                        COPY staging_events
-                        FROM {}
+                        copy staging_events
+                        from {}
                         credentials 'aws_iam_role={}'
-                        json 'auto'
-                        EMPTYASNULL
-                        BLANKSASNULL
+                        json {}
+                        emptyasnull
+                        blanksasnull
                     """).format(config['S3']['LOG_DATA'], 
-                                config['IAM_ROLE']['ARN'])
+                                config['IAM_ROLE']['ARN'],
+                                config['S3']['LOG_JSONPATH'])
 
 
 staging_songs_copy = ("""
-                     COPY staging_events 
-                     FROM {}
+                     copy staging_songs
+                     from {}
                      credentials 'aws_iam_role={}'
                      json 'auto'
-                     EMPTYASNULL
-                     BLANKSASNULL
-                    """).format(config['S3']['SONG_DATA'], 
+                     emptyasnull
+                     blanksasnull
+                     truncatecolumns
+                 """).format(config['S3']['SONG_DATA'], 
                                 config['IAM_ROLE']['ARN'])
 
 # FINAL TABLES
@@ -153,5 +156,5 @@ time_table_insert = ("""
 
 create_table_queries = [staging_events_table_create, staging_songs_table_create, songplay_table_create, user_table_create, song_table_create, artist_table_create, time_table_create]
 drop_table_queries = [staging_events_table_drop, staging_songs_table_drop, songplay_table_drop, user_table_drop, song_table_drop, artist_table_drop, time_table_drop]
-copy_table_queries = [staging_events_copy, staging_songs_copy] 
+copy_table_queries = [staging_songs_copy] # staging_events_copy
 insert_table_queries = [songplay_table_insert, user_table_insert, song_table_insert, artist_table_insert, time_table_insert]
