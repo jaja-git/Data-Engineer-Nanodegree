@@ -56,10 +56,10 @@ CREATE TABLE staging_songs (
 
 songplay_table_create = ("""
 CREATE TABLE songplays (
-    songplay_id text PRIMARY KEY,
+    songplay_id BIGINT IDENTITY NOT NULL,
     start_time timestamp,
     user_id text,
-    level int,
+    level text,
     song_id text,
     artist_id text,
     session_id text,
@@ -74,7 +74,7 @@ CREATE TABLE users (
     first_name text,
     last_name text,
     gender text,
-    level int
+    level text
 )
 """)
 
@@ -138,9 +138,9 @@ staging_songs_copy = ("""
 # FINAL TABLES
 
 songplay_table_insert = ("""
-INSERT INTO songplays (songplay_id, start_time, user_id, level, song_id, artist_id, session_id, location, user_agent)
+INSERT INTO songplays (start_time, user_id, level, song_id, artist_id, session_id, location, user_agent)
 SELECT TIMESTAMP 'epoch' + ts/1000 * INTERVAL '1 second' as start_time,
- user_id, level, song_id, artist_id, session_id, location, user_agent
+ user_id, level::text, song_id, artist_id, session_id, location, user_agent
   from staging_events e
   LEFT JOIN staging_songs s
   on e.song = s.title and e.artist = s.artist_name;
@@ -148,33 +148,33 @@ SELECT TIMESTAMP 'epoch' + ts/1000 * INTERVAL '1 second' as start_time,
 
 user_table_insert = ("""
 INSERT INTO users (user_id, first_name, last_name, gender, level)
-SELECT user_id, first_name, last_name, gender, level from staging_events
-ON CONFLICT(user_id) DO NOTHING
+SELECT user_id, first_name, last_name, gender, level::text from staging_events
+WHERE user_id IS NOT NULL;
 """)
 
 song_table_insert = ("""
 INSERT INTO songs (song_id, title, artist_id,  year, duration)
 SELECT song_id, title, artist_id, year, duration from staging_songs
-ON CONFLICT(song_id) DO NOTHING
+WHERE song_id IS NOT NULL;
 """)
 
 artist_table_insert = ("""
 INSERT INTO artists (artist_id, name, location, latitude, longitude)
 SELECT artist_id, artist_name, artist_location, artist_latitude, artist_longitude from staging_songs
-ON CONFLICT(artist_id) DO NOTHING
+WHERE artist_id IS NOT NULL;
 """)
 
 time_table_insert = ("""
-INSERT INTO time (timestamp, hour, day, week, month, year, weekday)
-WITH sq as (select TIMESTAMP 'epoch' + ts/1000 *INTERVAL '1 second' as ts from staging_events) 
-select ts as timestamp, 
+INSERT INTO time (start_time, hour, day, week, month, year, weekday)
+WITH sq as (SELECT TIMESTAMP 'epoch' + ts/1000 *INTERVAL '1 second' as ts FROM staging_events) 
+SELECT ts as start_time, 
        date_part('hour', ts) as hour,
        date_part('day', ts) as day,
        date_part('week', ts) as week,
        date_part('month', ts) as month,
        date_part('year', ts) as year,
        date_part('weekday', ts) as weekday  
-from sq;
+FROM sq;
 """)
 
 # QUERY LISTS
