@@ -55,6 +55,7 @@ The log files in the dataset you'll be working with are partitioned by year and 
 
 - Run `create_cluster.py` to create the Redshift cluster and IAM role.  
 - Run `create_tables.py` to create the tables.
+- Run `etl.py` to load data.
 
 
 
