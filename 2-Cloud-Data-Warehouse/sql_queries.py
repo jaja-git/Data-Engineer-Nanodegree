@@ -138,6 +138,12 @@ staging_songs_copy = ("""
 # FINAL TABLES
 
 songplay_table_insert = ("""
+INSERT INTO songplays (songplay_id, start_time, user_id, level, song_id, artist_id, session_id, location, user_agent)
+SELECT TIMESTAMP 'epoch' + ts/1000 * INTERVAL '1 second' as start_time,
+ user_id, level, song_id, artist_id, session_id, location, user_agent
+  from staging_events e
+  LEFT JOIN staging_songs s
+  on e.song = s.title and e.artist = s.artist_name;
 """)
 
 user_table_insert = ("""
