@@ -56,7 +56,7 @@ CREATE TABLE staging_songs (
 
 songplay_table_create = ("""
 CREATE TABLE songplays (
-    songplay_id text,
+    songplay_id text PRIMARY KEY,
     start_time timestamp,
     user_id text,
     level int,
@@ -70,7 +70,7 @@ CREATE TABLE songplays (
 
 user_table_create = ("""
 CREATE TABLE users (
-    user_id text,
+    user_id text PRIMARY KEY,
     first_name text,
     last_name text,
     gender text,
@@ -80,7 +80,7 @@ CREATE TABLE users (
 
 song_table_create = ("""
 CREATE TABLE songs (
-    song_id text,
+    song_id text PRIMARY KEY,
     title text,
     artist_id text,
     year int,
@@ -90,7 +90,7 @@ CREATE TABLE songs (
 
 artist_table_create = ("""
 CREATE TABLE artists (
-    artist_id text,
+    artist_id text PRIMARY KEY,
     name text,
     location text,
     latitude numeric,
@@ -141,20 +141,39 @@ songplay_table_insert = ("""
 """)
 
 user_table_insert = ("""
+INSERT INTO users (user_id, first_name, last_name, gender, level)
+SELECT user_id, first_name, last_name, gender, level from staging_events
+ON CONFLICT(user_id) DO NOTHING
 """)
 
 song_table_insert = ("""
+INSERT INTO songs (song_id, title, artist_id,  year, duration)
+SELECT song_id, title, artist_id, year, duration from staging_songs
+ON CONFLICT(song_id) DO NOTHING
 """)
 
 artist_table_insert = ("""
+INSERT INTO artists (artist_id, name, location, latitude, longitude)
+SELECT artist_id, artist_name, artist_location, artist_latitude, artist_longitude from staging_songs
+ON CONFLICT(artist_id) DO NOTHING
 """)
 
 time_table_insert = ("""
+INSERT INTO time (timestamp, hour, day, week, month, year, weekday)
+WITH sq as (select TIMESTAMP 'epoch' + ts/1000 *INTERVAL '1 second' as ts from staging_events) 
+select ts as timestamp, 
+       date_part('hour', ts) as hour,
+       date_part('day', ts) as day,
+       date_part('week', ts) as week,
+       date_part('month', ts) as month,
+       date_part('year', ts) as year,
+       date_part('weekday', ts) as weekday  
+from sq;
 """)
 
 # QUERY LISTS
 
 create_table_queries = [staging_events_table_create, staging_songs_table_create, songplay_table_create, user_table_create, song_table_create, artist_table_create, time_table_create]
 drop_table_queries = [staging_events_table_drop, staging_songs_table_drop, songplay_table_drop, user_table_drop, song_table_drop, artist_table_drop, time_table_drop]
-copy_table_queries = [staging_songs_copy] # staging_events_copy
+copy_table_queries = [staging_songs_copy, staging_events_copy]
 insert_table_queries = [songplay_table_insert, user_table_insert, song_table_insert, artist_table_insert, time_table_insert]

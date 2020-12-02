@@ -11,9 +11,10 @@ def load_staging_tables(cur, conn):
 
 
 def insert_tables(cur, conn):
-    for query in insert_table_queries:
-        cur.execute(query)
-        conn.commit()
+    for i in tqdm(range(0,100)):
+        for query in insert_table_queries:
+            cur.execute(query)
+            conn.commit()
 
 
 def main():
@@ -23,8 +24,8 @@ def main():
     conn = psycopg2.connect("host={} dbname={} user={} password={} port={}".format(*config['DWH'].values()))
     cur = conn.cursor()
     
-    load_staging_tables(cur, conn)
-    #insert_tables(cur, conn)
+    #load_staging_tables(cur, conn)
+    insert_tables(cur, conn)
 
     conn.close()
 
