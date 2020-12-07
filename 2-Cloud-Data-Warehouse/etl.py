@@ -4,6 +4,9 @@ from sql_queries import copy_table_queries, insert_table_queries
 from tqdm import tqdm 
 
 def load_staging_tables(cur, conn):
+    """
+    This function loads data to the staging tables
+    """
     for i in tqdm(range(0,100)):
         for query in copy_table_queries:
             cur.execute(query)
@@ -11,6 +14,9 @@ def load_staging_tables(cur, conn):
 
 
 def insert_tables(cur, conn):
+    """
+    This function copies data from the staging tables to the production table
+    """
     for i in tqdm(range(0,100)):
         for query in insert_table_queries:
             cur.execute(query)

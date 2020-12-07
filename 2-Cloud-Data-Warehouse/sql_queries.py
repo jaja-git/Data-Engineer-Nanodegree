@@ -148,7 +148,8 @@ WHERE e.page = 'NextPage'
 AND start_time IS NOT NULL
 AND user_id IS NOT NULL
 AND song_id IS NOT NULL
-AND artist_id IS NOT NULL;
+AND artist_id IS NOT NULL 
+and page = 'NextPage';
 """)
 
 user_table_insert = ("""
@@ -156,7 +157,9 @@ INSERT INTO users (user_id, first_name, last_name, gender, level)
 SELECT user_id, first_name, last_name, gender, level::text from staging_events
 WHERE user_id IS NOT NULL
 AND first_name IS NOT NULL
-AND last_name IS NOT NULL;
+AND last_name IS NOT NULL
+and page = 'NextPage'
+;
 """)
 
 song_table_insert = ("""
@@ -164,14 +167,16 @@ INSERT INTO songs (song_id, title, artist_id,  year, duration)
 SELECT song_id, title, artist_id, year, duration from staging_songs
 WHERE song_id IS NOT NULL
 AND artist_id IS NOT NULL
-AND title IS NOT NULL;
+AND title IS NOT NULL
+and page = 'NextPage';
 """)
 
 artist_table_insert = ("""
 INSERT INTO artists (artist_id, name, location, latitude, longitude)
 SELECT artist_id, artist_name, artist_location, artist_latitude, artist_longitude from staging_songs
 WHERE artist_id IS NOT NULL
-AND artist_name IS NOT NULL;
+AND artist_name IS NOT NULL
+;
 """)
 
 time_table_insert = ("""
@@ -185,7 +190,8 @@ SELECT ts as start_time,
        date_part('year', ts) as year,
        date_part('weekday', ts) as weekday  
 FROM sq
-WHERE start_time IS NOT NULL;
+WHERE start_time IS NOT NULL
+and page = 'NextPage';
 """)
 
 # QUERY LISTS
