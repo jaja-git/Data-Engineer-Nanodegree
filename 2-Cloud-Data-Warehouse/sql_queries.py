@@ -18,7 +18,7 @@ time_table_drop = "DROP TABLE IF EXISTS time;"
 
 staging_events_table_create= ("""
 CREATE TABLE staging_events (
-    artist text,
+    artist text NOT NULL,
     auth text,
     first_name text,
     gender text,
@@ -31,24 +31,24 @@ CREATE TABLE staging_events (
     page text,
     registration numeric,
     session_id int,
-    song text,
+    song text NOT NULL,
     status int,
-    ts bigint,
+    ts bigint NOT NULL,
     user_agent text,
-    user_id int
+    user_id int NOT NULL
 )
 """)
 
 staging_songs_table_create = ("""
 CREATE TABLE staging_songs (
-    artist_id text,
+    artist_id text NOT NULL,
     artist_latitude numeric,
     artist_location text,    
     artist_longitude numeric,
     artist_name text,
     duration numeric,
     num_songs int,
-    song_id text,
+    song_id text NOT NULL,
     title text,
     year int
 )
@@ -56,12 +56,12 @@ CREATE TABLE staging_songs (
 
 songplay_table_create = ("""
 CREATE TABLE songplays (
-    songplay_id BIGINT IDENTITY NOT NULL,
-    start_time timestamp,
-    user_id text,
+    songplay_id bigint IDENTITY PRIMARY KEY,
+    start_time timestamp NOT NULL,
+    user_id text NOT NULL,
     level text,
-    song_id text,
-    artist_id text,
+    song_id text NOT NULL,
+    artist_id text NOT NULL,
     session_id text,
     location text,
     user_agent text
@@ -71,8 +71,8 @@ CREATE TABLE songplays (
 user_table_create = ("""
 CREATE TABLE users (
     user_id text PRIMARY KEY,
-    first_name text,
-    last_name text,
+    first_name text NOT NULL,
+    last_name text NOT NULL,
     gender text,
     level text
 )
@@ -81,8 +81,8 @@ CREATE TABLE users (
 song_table_create = ("""
 CREATE TABLE songs (
     song_id text PRIMARY KEY,
-    title text,
-    artist_id text,
+    title text NOT NULL,
+    artist_id text NOT NULL,
     year int,
     duration int
 )
@@ -91,7 +91,7 @@ CREATE TABLE songs (
 artist_table_create = ("""
 CREATE TABLE artists (
     artist_id text PRIMARY KEY,
-    name text,
+    name text NOT NULL,
     location text,
     latitude numeric,
     longitude numeric
@@ -100,7 +100,7 @@ CREATE TABLE artists (
 
 time_table_create = ("""
 CREATE TABLE time (
-    start_time timestamp,
+    start_time timestamp PRIMARY KEY,
     hour int,
     day int,
     week int, 
@@ -143,25 +143,35 @@ SELECT TIMESTAMP 'epoch' + ts/1000 * INTERVAL '1 second' as start_time,
  user_id, level::text, song_id, artist_id, session_id, location, user_agent
   from staging_events e
   LEFT JOIN staging_songs s
-  on e.song = s.title and e.artist = s.artist_name;
+  on e.song = s.title and e.artist = s.artist_name
+WHERE e.page = 'NextPage'
+AND start_time IS NOT NULL
+AND user_id IS NOT NULL
+AND song_id IS NOT NULL
+AND artist_id IS NOT NULL;
 """)
 
 user_table_insert = ("""
 INSERT INTO users (user_id, first_name, last_name, gender, level)
 SELECT user_id, first_name, last_name, gender, level::text from staging_events
-WHERE user_id IS NOT NULL;
+WHERE user_id IS NOT NULL
+AND first_name IS NOT NULL
+AND last_name IS NOT NULL;
 """)
 
 song_table_insert = ("""
 INSERT INTO songs (song_id, title, artist_id,  year, duration)
 SELECT song_id, title, artist_id, year, duration from staging_songs
-WHERE song_id IS NOT NULL;
+WHERE song_id IS NOT NULL
+AND artist_id IS NOT NULL
+AND title IS NOT NULL;
 """)
 
 artist_table_insert = ("""
 INSERT INTO artists (artist_id, name, location, latitude, longitude)
 SELECT artist_id, artist_name, artist_location, artist_latitude, artist_longitude from staging_songs
-WHERE artist_id IS NOT NULL;
+WHERE artist_id IS NOT NULL
+AND artist_name IS NOT NULL;
 """)
 
 time_table_insert = ("""
@@ -174,7 +184,8 @@ SELECT ts as start_time,
        date_part('month', ts) as month,
        date_part('year', ts) as year,
        date_part('weekday', ts) as weekday  
-FROM sq;
+FROM sq
+WHERE start_time IS NOT NULL;
 """)
 
 # QUERY LISTS
