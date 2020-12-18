@@ -17,9 +17,9 @@ Sharpen your data warehousing skills and deepen your understanding of data infra
 ### Spark, Data Lakes
 Understand the big data ecosystem and how to use Spark to work with massive datasets. Store big data in a data lake and query it with Spark.
 
-- Build a Data Lake
+- [Build a Data Lake](https://github.com/jaja-git/Data-Engineer-Nanodegree/blob/main/3-Data-Lakes-with-Spark/README.md)
 
 ### Data Pipelines with Airflow
 Schedule, automate, and monitor data pipelines using Apache Airflow. Run data quality checks, track data lineage, and work with data pipelines in production.
 
-- Data Pipeline with Airflow 
+- [Data Pipeline with Airflow](https://github.com/jaja-git/Data-Engineer-Nanodegree/tree/main/4-Data-Pipelines-with-Airflow) 
