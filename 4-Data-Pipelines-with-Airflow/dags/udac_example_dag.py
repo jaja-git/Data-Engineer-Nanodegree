@@ -22,7 +22,7 @@ default_args = {
     'email_on_retry': False
 }
 
-dag = DAG('airflow_project_dag',
+dag = DAG('airflow_project',
           default_args=default_args,
           description='Load and transform data in Redshift with Airflow',
           schedule_interval='0 * * * *',
@@ -37,7 +37,6 @@ stage_events_to_redshift = StageToRedshiftOperator(
     s3_bucket="udacity-dend",
     s3_key="log_data/2018/11",
     table="staging_events",
-    redshift_conn_id="redshift",
     json_format="s3://udacity-dend/log_json_path.json",
     provide_context=True
 )
@@ -87,13 +86,7 @@ load_time_dimension_table = LoadDimensionOperator(
 
 run_quality_checks = DataQualityOperator(
     task_id='Run_data_quality_checks',
-    dag=dag,
-    table_list=[
-        'songplays',
-        'users',
-        'time',
-        'songs',
-        'artists']
+    dag=dag
 )
 
 end_operator = DummyOperator(task_id='Stop_execution', dag=dag)
