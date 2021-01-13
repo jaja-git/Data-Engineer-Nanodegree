@@ -31,7 +31,7 @@ The stage operator loads any JSON formatted files from S3 to Amazon Redshift. Th
 
 
 #### Fact and Dimension Operators
-Takes as input the SQL statement and the target database on which to run the query against. Default mode is `truncate-insert` (i.e the target table is emptied before the load). Thus, a parameter allows switching between insert modes when loading dimensions. 
+Takes as input the SQL statement and the target database on which to run the query against. Default mode is `truncate-insert` (i.e the target table is emptied before the load), but parameter allows switching between insert modes when loading dimensions. 
 
 #### Data Quality Operator
 Runs checks on the data itself. The operator's main functionality is to receive a few SQL based test cases along with the expected results and execute the tests. For each the test, if it has failed, the operator will raise an exception and the task will retry and fail eventually.
