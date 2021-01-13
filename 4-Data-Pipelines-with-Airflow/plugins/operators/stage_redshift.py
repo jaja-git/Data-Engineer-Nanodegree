@@ -40,11 +40,10 @@ class StageToRedshiftOperator(BaseOperator):
         self.json_format = json_format
 
 
-    def execute(self, context):
+    def execute(self, context, *args, **kwargs):
         redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
         self.log.info("Clearing data from destination Redshift table")
         redshift.run("DELETE FROM {}".format(self.table))
-
         self.log.info("Copying data from S3 to Redshift")
         rendered_key = self.s3_key.format(**context)
         self.log.info(rendered_key)
@@ -57,5 +56,4 @@ class StageToRedshiftOperator(BaseOperator):
             AWS_SECRET,
             self.json_format
         )
-        print(formatted_sql)
         redshift.run(formatted_sql)

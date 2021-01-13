@@ -22,12 +22,12 @@ default_args = {
     'email_on_retry': False
 }
 
-dag = DAG('airflow_project',
+dag = DAG('airflow_project_dag',
           default_args=default_args,
           description='Load and transform data in Redshift with Airflow',
           schedule_interval='0 * * * *',
           catchup=False
-        )
+)
 
 start_operator = DummyOperator(task_id='Begin_execution',  dag=dag)
 
@@ -46,7 +46,8 @@ stage_songs_to_redshift = StageToRedshiftOperator(
     dag=dag,
     s3_bucket="udacity-dend",
     s3_key="song_data/A/A",
-    table="staging_songs"
+    table="staging_songs",
+    provide_context=True
 )
 
 load_songplays_table = LoadFactOperator(
@@ -60,6 +61,7 @@ load_user_dimension_table = LoadDimensionOperator(
     task_id='Load_user_dim_table',
     dag=dag,
     table='users',
+    truncate_first=True,
     sql='insert into {} {}'.format('users', SqlQueries.user_table_insert)
 )
 
@@ -67,6 +69,7 @@ load_song_dimension_table = LoadDimensionOperator(
     task_id='Load_song_dim_table',
     dag=dag,
     table='songs',
+    truncate_first=True,
     sql='insert into {} {}'.format('songs', SqlQueries.song_table_insert)
 )
 
@@ -74,6 +77,7 @@ load_artist_dimension_table = LoadDimensionOperator(
     task_id='Load_artist_dim_table',
     dag=dag,
     table='artists',
+    truncate_first=True,
     sql='insert into {} {}'.format('artists', SqlQueries.artist_table_insert)
 )
 
@@ -81,6 +85,7 @@ load_time_dimension_table = LoadDimensionOperator(
     task_id='Load_time_dim_table',
     dag=dag,
     table='time',
+    truncate_first=True,
     sql='insert into {} {}'.format('time', SqlQueries.time_table_insert)
 )
 

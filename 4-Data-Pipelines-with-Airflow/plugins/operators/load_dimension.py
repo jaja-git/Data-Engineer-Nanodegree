@@ -12,6 +12,7 @@ class LoadDimensionOperator(BaseOperator):
                  aws_credentials_id="aws_credentials",
                  table="",
                  sql="",
+                 truncate_first=True,
                  *args, 
                  **kwargs):
 
@@ -20,9 +21,12 @@ class LoadDimensionOperator(BaseOperator):
         self.aws_credentials_id = aws_credentials_id
         self.table = table
         self.sql = sql
+        self.truncate_first = truncate_first
 
     def execute(self, context):
         redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
-        self.log.info("Clearing data from destination Redshift table")
-        redshift.run("DELETE FROM {}".format(self.table))
+        if self.truncate_first is True:            
+            self.log.info("Clearing data from Redshift dimension table")
+            redshift.run("DELETE FROM {}".format(self.table))
+        self.log.info("Inserting rows..")
         redshift.run(self.sql)
