@@ -39,16 +39,19 @@ Runs checks on the data itself. The operator's main functionality is to receive 
 
 ### Usage
 
-To initiliaze the project, first run 2 files from the previous project named Cloud Data Warehouse:
+A Redshift cluster has already been set up and the tables have been created in the public schema. (see table below)
 
+ schema |      name      | type  |
+--------+----------------+-------+
+ public | artists        | table |
+ public | songplays      | table |
+ public | songs          | table |
+ public | staging_events | table |
+ public | staging_songs  | table |
+ public | time           | table |
+ public | users          | table |
 
-- Run `create_cluster.py` to create the Redshift cluster and IAM role.  
-- Run `create_tables.py` to create the tables.
-
-Then:
-- Run `airflow_project_dag.py` to load data.
-
+Hence, simply run `airflow_project_dag.py` to load data.
 
 To connect to the db via psql, run  
 `psql -h redshift-cluster.ce5jntlwthav.us-east-1.redshift.amazonaws.com -U awsuser -d dev -p 5439`
-
