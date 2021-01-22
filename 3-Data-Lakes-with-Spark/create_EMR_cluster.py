@@ -9,11 +9,12 @@ Instructions:
     3. First, install `awscli` using pip.  You can get instructions for MacOS, Windows, Linux here  on [AWS Documentation](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html).
     4. This will give you access to create an EMR cluster and EC2 cluster. The EC2 cluster shows a status of all the clusters with your keys, etc. It does a ton of things!
     5. Once it's installed, run the script below to launch your cluster. Be sure to include the appropriate file names within the <> in the code.
-"""i
+"""
 
 # Add your cluster name
+"""
 aws emr create-cluster 
---name "my-emr-cluster"
+--name my-emr-cluster
 --use-default-roles  
 --release-label emr-5.28.0 
 --instance-count 3 
@@ -21,8 +22,8 @@ aws emr create-cluster
 --bootstrap-actions Path=s3://aws-emr-resources-926236161117-us-west-2/bootstrap_emr.sh
 --ec2-attributes KeyName=spark-cluster
 --instance-type m5.xlarge
---auto-terminate`
-
+--auto-terminate
+"""
 # Specify your cluster name 
 YOUR_CLUSTER_NAME: "my-emr-cluster
 
