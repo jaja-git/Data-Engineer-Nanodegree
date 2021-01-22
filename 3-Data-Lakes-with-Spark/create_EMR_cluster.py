@@ -13,19 +13,18 @@ Instructions:
 
 # Add your cluster name
 aws emr create-cluster 
---name <YOUR_CLUSTER_NAME> 
+--name "my-emr-cluster"
 --use-default-roles  
 --release-label emr-5.28.0 
---instance-count 2 
---applications Name=Spark  
---bootstrap-actions Path=<YOUR_BOOTSTRAP_FILENAME>  
---ec2-attributes KeyName=<YOUR_KEY_NAME>  
---instance-type m5.xlarge i
 --instance-count 3 
+--applications Name=Spark  
+--bootstrap-actions Path=s3://aws-emr-resources-926236161117-us-west-2/bootstrap_emr.sh
+--ec2-attributes KeyName=spark-cluster
+--instance-type m5.xlarge
 --auto-terminate`
 
 # Specify your cluster name 
-`YOUR_CLUSTER_NAME: "my-emr-cluster"
+YOUR_CLUSTER_NAME: "my-emr-cluster
 
 # Insert your IAM KEYNAME - Remember, your IAM key name is saved under .ssh/ directory
 YOUR_KEY_NAME: "spark-cluster"
@@ -34,4 +33,7 @@ YOUR_KEY_NAME: "spark-cluster"
 # This file is provided in the zipped folder titled “Exercise_Creating EMR Cluster” at the bottom of this page.
 
 # In this EMR script, execute using Bootstrap
-YOUR_BOOTSTRAP_FILENAME: "/Users/alexandre/Documents/Github/Data-Engineer-Nanodegree/3-Data-Lakes-with-Spark/bootstrap_emr.sh"
+YOUR_BOOTSTRAP_FILENAME: "~/Documents/Github/Data-Engineer-Nanodegree/3-Data-Lakes-with-Spark/bootstrap_emr.sh"
+
+
+Final_command = "aws emr create-cluster --name my-emr-cluster --use-default-roles --release-label emr-5.28.0 --instance-count 3 --applications Name=Spark  --bootstrap-actions Path=s3://aws-emr-resources-926236161117-us-west-2/bootstrap_emr.sh --ec2-attributes KeyName=spark-cluster --instance-type m5.xlarge --auto-terminate"
