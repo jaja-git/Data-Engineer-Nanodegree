@@ -116,7 +116,9 @@ def process_log_data(spark, song_input_data, log_input_data, output_data):
       s.artist_id,
       l.sessionId AS session_id,
       l.location,
-      l.userAgent
+      l.userAgent,
+      month(timestamp) as month,
+      year(timestamp) as year
     FROM log_view l
     LEFT JOIN song_view s 
         ON l.artist = s.artist_name
@@ -124,7 +126,7 @@ def process_log_data(spark, song_input_data, log_input_data, output_data):
     
     # write songplays table to parquet files partitioned by year and month
     songplay_table_path = os.path.join(output_data,"songplays")
-    songplay_table.write.mode("overwrite").parquet(songplay_table_path)
+    songplay_table.write.mode("overwrite").partitionBy("year","month").parquet(songplay_table_path)
 
 
 def main():
