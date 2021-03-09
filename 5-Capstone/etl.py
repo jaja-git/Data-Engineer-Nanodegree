@@ -5,7 +5,7 @@ from pyspark.sql import SparkSession
 from pyspark.context import SparkContext
 from pyspark import SparkConf
 from pyspark.sql import types as T
-from pyspark.sql.types import *
+from pyspark.sql.types import StructType, StructField, DoubleType, StringType, DateType, IntegerType
 from pyspark.sql.functions import udf, col, month, year, month, dayofmonth, max, desc, upper
 from datetime import datetime, timedelta
 
@@ -21,7 +21,6 @@ conf = (
         .set("spark.jars.packages","saurfang:spark-sas7bdat:3.0.0-s_2.11,org.apache.hadoop:hadoop-aws:2.7.2")
         .set("spark.ui.enabled","true")
 )
-
 
 print('Creating Spark Session...')
 
@@ -118,6 +117,7 @@ city_dim = city_dim.astype(str)
 print('Helper tables for i94 successfully loaded!')
 
 
+
 #### GET/CLEAN FULL I94 DATA ####
 
 
@@ -163,7 +163,7 @@ for fname in files:
       col("visatype").cast(T.StringType()))
     i94_df_full = i94_df_full.unionAll(df)
 
-    
+
 print('i94 data successfully loaded from SAS files!')
 
 print('Writing to local disk as parquet...')
