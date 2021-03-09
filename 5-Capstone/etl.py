@@ -1,14 +1,13 @@
-import configparser
-import os
-from datetime import datetime, timedelta
 import pandas as pd
-from pyspark import SparkConf
-from pyspark.context import SparkContext
+import os
+import configparser
 from pyspark.sql import SparkSession
+from pyspark.context import SparkContext
+from pyspark import SparkConf
 from pyspark.sql import types as T
-from pyspark.sql.functions import (col, dayofmonth, desc, max, month, udf,
-                                   upper, year)
 from pyspark.sql.types import *
+from pyspark.sql.functions import udf, col, month, year, month, dayofmonth, max, desc, upper
+from datetime import datetime, timedelta
 
 config = configparser.ConfigParser()
 config.read('config.cfg')
@@ -149,19 +148,19 @@ for fname in files:
     path="../../data/18-83510-I94-Data-2016/"+fname
     df =spark.read.format("com.github.saurfang.sas.spark").load(path)
     df = df.select(
-      col("cicid").alias("id").cast(T.IntegerType()), 
-      col("arrdate").alias("arrival_date").cast(T.DoubleType()), 
+      col("cicid").cast(T.IntegerType()), 
+      col("arrdate").cast(T.DoubleType()), 
       col("i94cit").cast(T.StringType()), 
       col("i94res").cast(T.StringType()), 
-      col("i94port").alias("arrival_city_code").cast(T.StringType()), 
-      col("i94mode").alias("travel_mode").cast(T.IntegerType()),
-      col("i94addr").alias("arrival_state_code").cast(T.StringType()), 
-      col("depdate").alias("departure_date").cast(T.DoubleType()), 
-      col("i94bir").alias("age").cast(T.IntegerType()), 
-      col("i94visa").alias("reason").cast(T.IntegerType()), 
-      col("gender").alias("gender").cast(T.StringType()), 
-      col("airline").alias("airline").cast(T.StringType()), 
-      col("visatype").alias("visa_type").cast(T.StringType()))
+      col("i94port").cast(T.StringType()), 
+      col("i94mode").cast(T.IntegerType()),
+      col("i94addr").cast(T.StringType()), 
+      col("depdate").cast(T.DoubleType()), 
+      col("i94bir").cast(T.IntegerType()), 
+      col("i94visa").cast(T.IntegerType()), 
+      col("gender").cast(T.StringType()), 
+      col("airline").cast(T.StringType()), 
+      col("visatype").cast(T.StringType()))
     i94_df_full = i94_df_full.unionAll(df)
 
     
@@ -177,9 +176,7 @@ print('Success!')
 #read from parquet
 i94_df_full=spark.read.parquet("sas_data")
 
-
 print('Cleaning dataset...')
-
 
 def convert_datetime(x):
     try:
@@ -212,19 +209,19 @@ print('Creating final tables...')
 i94_df_full.createOrReplaceTempView("i94")    
 immigration_fact_table = spark.sql("""
     SELECT 
-      id, 
+      cicid AS id, 
       arrival_date,
-      i94cit as origin_country,
-      i94res as residency_country,
-      arrival_city_code,
-      travel_mode,
-      age,
-      reason,
+      origin_country,
+      residency_country,
+      i94addr AS arrival_city_code,
+      i94mode AS travel_mode,
+      i94bir AS age,
+      i94visa AS reason,
       gender,
       airline,
-      visa_type
-    FROM i94 
-""")
+      visatype AS visa_type
+    FROM i94
+    """)
 
 
 #create time dimension table
@@ -295,11 +292,8 @@ print('Tables successfully created!')
 print('Writing tables to S3...')
 
 immigration_fact_table.write.mode('overwrite').partitionBy("arrival_date").parquet("s3a://aws-emr-resources-926236161117-us-west-2/capstone/immigration_fact")
-
 us_cities_dimension.write.mode('overwrite').parquet("s3a://aws-emr-resources-926236161117-us-west-2/capstone/us_cities_dim")
-
 temp_dimension.write.mode('overwrite').partitionBy("date").parquet("s3a://aws-emr-resources-926236161117-us-west-2/capstone/temperature_dim")
-
 time_dimension.write.mode('overwrite').parquet("s3a://aws-emr-resources-926236161117-us-west-2/capstone/time_dim")
 
 print('Tables successfully copied to S3!')
@@ -321,3 +315,5 @@ quality_check("us_cities_dim")
 quality_check("time_dim")
 quality_check("immigration_fact")
 quality_check("temperature_dim")
+
+print('All done.')
