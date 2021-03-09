@@ -1,3 +1,4 @@
+
 # Data Pipelines with Airflow
 
 ## Project Description
@@ -51,4 +52,3 @@ Then:
 
 To connect to the db via psql, run  
 `psql -h redshift-cluster.ce5jntlwthav.us-east-1.redshift.amazonaws.com -U awsuser -d dev -p 5439`
-
