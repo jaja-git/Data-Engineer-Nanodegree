@@ -1,17 +1,18 @@
 immigration_sql = """
         SELECT 
-          cicid AS id, 
-          arrival_date,
-          origin_country,
-          residency_country,
-          i94addr AS arrival_city_code,
-          i94mode AS travel_mode,
-          i94bir AS age,
-          i94visa AS reason,
-          gender,
-          airline,
-          visatype AS visa_type
-        FROM i94
+      arrival_date,
+      i94cit AS origin_country,
+      i94res AS residency_country,
+      i94port AS arrival_city_code,
+      i94mode AS travel_mode,
+      i94bir AS age,
+      i94visa AS reason,
+      gender,
+      airline,
+      visatype AS visa_type,
+      COUNT(*) AS count
+    FROM i94 
+    GROUP BY 1,2,3,4,5,6,7,8,9,10
         """
 
 
@@ -60,6 +61,7 @@ temp_sql = """
         date,
         AVG(average_temperature) AS average_temperature
         FROM temp
+        WHERE year(date) >= 1900
         GROUP BY 1,2
         ORDER BY date DESC, country
     """
