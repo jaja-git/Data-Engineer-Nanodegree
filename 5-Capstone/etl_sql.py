@@ -1,5 +1,5 @@
 immigration_sql = """
-        SELECT 
+    SELECT 
       arrival_date,
       i94cit AS origin_country,
       i94res AS residency_country,
@@ -12,19 +12,18 @@ immigration_sql = """
       visatype AS visa_type,
       COUNT(*) AS count
     FROM i94 
-    GROUP BY 1,2,3,4,5,6,7,8,9,10
-        """
+    GROUP BY 1,2,3,4,5,6,7,8,9,10"""
 
 
 time_sql = """
-        SELECT
-          arrival_date AS date,
-          year(arrival_date) AS year,
-          month(arrival_date) AS month,
-          dayofmonth(arrival_date) AS day
-        FROM i94
-        GROUP BY 1,2,3,4
-        ORDER BY date DESC
+    SELECT
+      arrival_date AS date,
+      year(arrival_date) AS year,
+      month(arrival_date) AS month,
+      dayofmonth(arrival_date) AS day
+    FROM i94
+    GROUP BY 1,2,3,4
+    ORDER BY date DESC
     """
 
 us_cities_sql = """

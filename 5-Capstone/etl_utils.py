@@ -25,7 +25,7 @@ def code_mapper(file, idx):
 
 
 def set_schema():
-    """ Set schema for i94 file"""
+    """Set schema for i94 file"""
     schema = StructType([
         StructField("cicid",DoubleType(),True),
         StructField("arrdate",DoubleType(),True),
@@ -53,7 +53,7 @@ def convert_datetime(x):
 
 
 def quality_check(spark, folder):
-    """ Makes sure that records have been copied to S3"""
+    """Makes sure that tables have been copied"""
     df = spark.read.parquet("s3a://aws-emr-resources-926236161117-us-west-2/capstone/"+folder)
     result = df.count()
     if result == 0:

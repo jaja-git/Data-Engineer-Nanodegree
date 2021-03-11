@@ -6,314 +6,195 @@ from pyspark.context import SparkContext
 from pyspark import SparkConf
 from pyspark.sql import types as T
 from pyspark.sql.types import StructType, StructField, DoubleType, StringType, DateType, IntegerType
+from pyspark.sql.types import *
 from pyspark.sql.functions import udf, col, month, year, month, dayofmonth, max, desc, upper
 from datetime import datetime, timedelta
+from etl_utils import code_mapper, set_schema, convert_datetime, quality_check
+from etl_sql import immigration_sql, time_sql, us_cities_sql, temp_sql
 
 config = configparser.ConfigParser()
 config.read('config.cfg')
 ACCESS_KEY = config['AWS']['AWS_ACCESS_KEY_ID']
 SECRET_KEY = config['AWS']['AWS_SECRET_ACCESS_KEY']
 
-conf = (
+
+def create_spark_session():
+    print('Creating Spark Session...')
+    conf = (
     SparkConf()
         .set('spark.hadoop.fs.s3a.access.key', ACCESS_KEY)
         .set('spark.hadoop.fs.s3a.secret.key', SECRET_KEY)
-        .set("spark.jars.packages","saurfang:spark-sas7bdat:3.0.0-s_2.11,org.apache.hadoop:hadoop-aws:2.7.2")
+        .set("spark.jars.packages",\
+             "saurfang:spark-sas7bdat:3.0.0-s_2.11,org.apache.hadoop:hadoop-aws:2.7.2")
         .set("spark.ui.enabled","true")
-)
-
-print('Creating Spark Session...')
-
-sc = SparkContext(conf=conf)
-spark = SparkSession(sc).builder.enableHiveSupport().getOrCreate()
-
-print('Spark Session successfully created!')
+    )
+    sc = SparkContext(conf=conf)
+    spark = SparkSession(sc).builder.enableHiveSupport().getOrCreate()
+    print('Spark Session successfully created.')
+    return spark, sc
 
 
-#### GET/CLEAN TEMPERATURE DATA ####
-fname = '../../data2/GlobalLandTemperaturesByCity.csv'
-temp_df = spark.read.csv(fname, header=True, inferSchema=True)
+def process_temperature_data(spark):
+    fname = '../../data2/GlobalLandTemperaturesByCity.csv'
+    temp_df = spark.read.csv(fname, header=True, inferSchema=True)
 
-temp_df_clean = temp_df.select(
-    col("dt").alias("date").cast(T.DateType()), 
-    upper(col("Country")).alias("country_name").cast(T.StringType()),
-    upper(col("City")).alias("city_name").cast(T.StringType()),
-    col("AverageTemperature").alias("average_temperature"), 
-    col("AverageTemperatureUncertainty").alias("average_temperature_uncertainty"),
-    col("Latitude").alias("latitude").cast(T.StringType()),
-    col("Longitude").alias("longitude").cast(T.StringType())
-)
-temp_df_clean = temp_df_clean.na.drop(subset=["average_temperature"])
-
-
-print('Temperature data successfully loaded!')
-
-
-#### GET/CLEAN US CITIES DATA ####
-fname = "us-cities-demographics.csv"
-us_cities_df = spark.read.csv(fname, inferSchema=True, header=True, sep=';')
+    temp_df_clean = temp_df.select(
+        col("dt").alias("date").cast(T.DateType()), 
+        upper(col("Country")).alias("country_name").cast(T.StringType()),
+        upper(col("City")).alias("city_name").cast(T.StringType()),
+        col("AverageTemperature").alias("average_temperature"), 
+        col("AverageTemperatureUncertainty").alias("average_temperature_uncertainty"),
+        col("Latitude").alias("latitude").cast(T.StringType()),
+        col("Longitude").alias("longitude").cast(T.StringType())
+    )
+    temp_df_clean = temp_df_clean.na.drop(subset=["average_temperature"])
+    print('Temperature data successfully loaded.')
+    return temp_df_clean
 
 
-us_cities_df_clean = us_cities_df.select(
-    upper(col("City")).alias("city_name").cast(T.StringType()),
-    col("State Code").alias("state_code").cast(T.StringType()),
-    upper(col("Race")).alias("race").cast(T.StringType()),
-    col("Male Population").alias("male_population").cast(T.IntegerType()),
-    col("Female Population").alias("female_population").cast(T.IntegerType()),
-    col("Total Population").alias("total_population").cast(T.IntegerType()),
-    col("Foreign-born").alias("foreign_born").cast(T.IntegerType()))
+def process_us_cities_data(spark):
+    fname = "us-cities-demographics.csv"
+    us_cities_df = spark.read.csv(fname, inferSchema=True, header=True, sep=';')
+    us_cities_df_clean = us_cities_df.select(
+        upper(col("City")).alias("city_name").cast(T.StringType()),
+        col("State Code").alias("state_code").cast(T.StringType()),
+        upper(col("Race")).alias("race").cast(T.StringType()),
+        col("Male Population").alias("male_population").cast(T.IntegerType()),
+        col("Female Population").alias("female_population").cast(T.IntegerType()),
+        col("Total Population").alias("total_population").cast(T.IntegerType()),
+        col("Foreign-born").alias("foreign_born").cast(T.IntegerType()))
+    print('Us cities data successfully loaded.')
+    return us_cities_df_clean
 
 
-print('Us cities data successfully loaded!')
+def process_sas_mapping_files(spark):
+    #open files
+    with open('./I94_SAS_Labels_Descriptions.SAS') as f:
+        f_content = f.read()
+        f_content = f_content.replace('\t', '')
+
+    #create dictionaries
+    i94cit_res = code_mapper(f_content, "i94cntyl") # country code numeric to country name
+    i94port = code_mapper(f_content, "i94prtl")     # city code to city name and state code
+    i94mode = code_mapper(f_content, "i94model")    # travel mode
+    i94addr = code_mapper(f_content, "i94addrl")    # state code to state name
+    i94visa = {'1':'Business', '2': 'Pleasure', '3' : 'Student'}
+
+    #create mapping helper tables
+    country_map_df = pd.DataFrame.from_dict(i94cit_res,orient='index', columns=['country_name']).reset_index()
+    country_map_df.columns = ['country_code_numeric','country_name'] 
+    country_map_df = spark.createDataFrame(country_map_df)
+    city_map_df = pd.DataFrame.from_dict(i94port,orient='index', columns=['city_name_and_state']).reset_index()
+    city_map_df.columns = ['city_code','city_name_and_state_code'] 
+    city_map_df['city_name'] = city_map_df['city_name_and_state_code'].str.split(',',n = 1, expand = True)[0]
+    city_map_df['state_code'] = city_map_df['city_name_and_state_code'].str.split(',',n = 1, expand = True)[1]
+    city_map_df=city_map_df[['city_code','city_name','state_code']]
+
+    for cols in city_map_df.columns:
+        city_map_df[cols] = city_map_df[cols].str.strip()
+    airport_map_df = pd.DataFrame.from_dict(i94addr,orient='index',
+                           columns=['state']).reset_index()
+    airport_map_df.columns = ['state_code', 'state_name']
+
+    city_map_df = city_map_df.merge(airport_map_df,how='left',on="state_code")
+    city_map_df = city_map_df.astype(str)
+    return country_map_df, city_map_df
 
 
-#### GET/CLEAN SAS MAPPING FILES ####
+def process_i94_data(spark, sc):
+    #define schema
+    schema = set_schema()
+    #specify folder
+    files = os.listdir('../../data/18-83510-I94-Data-2016/')
 
-#open files
-with open('./I94_SAS_Labels_Descriptions.SAS') as f:
-    f_content = f.read()
-    f_content = f_content.replace('\t', '')
-
-    
-def code_mapper(file, idx):
-    f_content2 = f_content[f_content.index(idx):]
-    f_content2 = f_content2[:f_content2.index(';')].split('\n')
-    f_content2 = [i.replace("'", "") for i in f_content2]
-    dic = [i.split('=') for i in f_content2[1:]]
-    dic = dict([i[0].strip(), i[1].strip()] for i in dic if len(i) == 2)
-    return dic
-
-#create dictionaries
-i94cit_res = code_mapper(f_content, "i94cntyl") # country code numeric to country name
-i94port = code_mapper(f_content, "i94prtl")     # city code to city name and state code
-i94mode = code_mapper(f_content, "i94model")    # travel mode
-i94addr = code_mapper(f_content, "i94addrl")    # state code to state name
-i94visa = {'1':'Business', '2': 'Pleasure', '3' : 'Student'}
-
-
-#create mapping helper tables
-country_map_df = pd.DataFrame.from_dict(i94cit_res,orient='index',
-                       columns=['country_name']).reset_index()
-country_map_df.columns = ['country_code_numeric','country_name'] 
-country_map_df = spark.createDataFrame(country_map_df)
-
-city_map_df = pd.DataFrame.from_dict(i94port,orient='index',
-                       columns=['city_name_and_state']).reset_index()
-city_map_df.columns = ['city_code','city_name_and_state_code'] 
-city_map_df['city_name'] = city_map_df['city_name_and_state_code'].str.split(',',n = 1, expand = True)[0]
-city_map_df['state_code'] = city_map_df['city_name_and_state_code'].str.split(',',n = 1, expand = True)[1]
-city_map_df=city_map_df[['city_code','city_name','state_code']]
-
-for cols in city_map_df.columns:
-    city_map_df[cols] = city_map_df[cols].str.strip()
-
-airport_map_df = pd.DataFrame.from_dict(i94addr,orient='index',
-                       columns=['state']).reset_index()
-airport_map_df.columns = ['state_code', 'state_name']
-    
-city_dim = city_map_df.merge(airport_map_df,how='left',on="state_code")
-city_dim = city_dim.astype(str)
-
-print('Helper tables for i94 successfully loaded!')
-
-
-
-#### GET/CLEAN FULL I94 DATA ####
-
-
-print('Loading i94 full data...')
-
-#define schema
-schema = StructType([
-    StructField("cicid",DoubleType(),True),
-    StructField("arrdate",DoubleType(),True),
-    StructField("i94cit",DoubleType(),True),
-    StructField("i94res",DoubleType(),True),
-    StructField("i94port",StringType(),True),
-    StructField("i94mode",DoubleType(),True),
-    StructField("i94addr",StringType(),True),
-    StructField("depdate",DoubleType(),True),    
-    StructField("i94bir",DoubleType(),True),
-    StructField("i94visa",DoubleType(),True),
-    StructField("gender",StringType(),True),
-    StructField("airline",StringType(),True),
-    StructField("visatype",StringType(),True)])
-
-#specify folder
-files = os.listdir('../../data/18-83510-I94-Data-2016/')
-
-#loop over all the files in folder, and union all
-i94_df_full = spark.createDataFrame(sc.emptyRDD(),schema)
-for fname in files:
-    path="../../data/18-83510-I94-Data-2016/"+fname
-    df =spark.read.format("com.github.saurfang.sas.spark").load(path)
-    df = df.select(
-      col("cicid").cast(T.IntegerType()), 
-      col("arrdate").cast(T.DoubleType()), 
-      col("i94cit").cast(T.StringType()), 
-      col("i94res").cast(T.StringType()), 
-      col("i94port").cast(T.StringType()), 
-      col("i94mode").cast(T.IntegerType()),
-      col("i94addr").cast(T.StringType()), 
-      col("depdate").cast(T.DoubleType()), 
-      col("i94bir").cast(T.IntegerType()), 
-      col("i94visa").cast(T.IntegerType()), 
-      col("gender").cast(T.StringType()), 
-      col("airline").cast(T.StringType()), 
-      col("visatype").cast(T.StringType()))
+    #loop over all the files in folder, and union all
+    i94_df_full = spark.createDataFrame(sc.emptyRDD(),schema)
+    for fname in files:
+        path="../../data/18-83510-I94-Data-2016/"+fname
+        df =spark.read.format("com.github.saurfang.sas.spark").load(path)
+        df = df.select(
+          col("cicid").cast(T.IntegerType()), 
+          col("arrdate").cast(T.DoubleType()), 
+          col("i94cit").cast(T.StringType()), 
+          col("i94res").cast(T.StringType()), 
+          col("i94port").cast(T.StringType()), 
+          col("i94mode").cast(T.IntegerType()),
+          col("i94addr").cast(T.StringType()), 
+          col("depdate").cast(T.DoubleType()), 
+          col("i94bir").cast(T.IntegerType()), 
+          col("i94visa").cast(T.IntegerType()), 
+          col("gender").cast(T.StringType()), 
+          col("airline").cast(T.StringType()), 
+          col("visatype").cast(T.StringType()))
+        df = df.filter(col("i94visa")==2).filter(col("i94mode") == 1)
     i94_df_full = i94_df_full.unionAll(df)
+    #i94_df_full = df #  !FOR TESTING!
+    print('i94 data successfully loaded.')
+    return i94_df_full
 
 
-print('i94 data successfully loaded from SAS files!')
-
-print('Writing to local disk as parquet...')
-
-#write to parquet
-i94_df_full.write.mode('overwrite').parquet("sas_data")
-
-print('Success!')
-
-#read from parquet
-i94_df_full=spark.read.parquet("sas_data")
-
-print('Cleaning dataset...')
-
-def convert_datetime(x):
-    try:
-        start = datetime(1960, 1, 1)
-        return start + timedelta(days=int(x))
-    except:
-        return None
-    
-udf_datetime_from_sas = udf(lambda x: convert_datetime(x), T.DateType())
+def clean_i94_dataset(spark, i94_data, country_map_df):
+    udf_datetime_from_sas = udf(lambda x: convert_datetime(x), T.DateType())
+    i94_data = i94_data.withColumn("arrival_date", udf_datetime_from_sas("arrdate"))\
+        .withColumn("departure_date", udf_datetime_from_sas("depdate"))
+    #join country name from mapping helper table
+    spark.conf.set("spark.sql.crossJoin.enabled", "true")
+    i94_data = i94_data.join(country_map_df, i94_data.i94res == \
+        country_map_df.country_code_numeric)\
+            .withColumnRenamed("country_name","residency_country")\
+            .withColumnRenamed("country_code_numeric","res_country_code_numeric")
+    i94_data = i94_data.join(country_map_df, i94_data.i94cit == \
+        country_map_df.country_code_numeric)\
+            .withColumnRenamed("country_name","origin_country")\
+            .withColumnRenamed("country_code_numeric","origin_country_code_numeric")
+    return i94_data
 
 
-#convert date columns with udf
-i94_df_full = i94_df_full\
-.withColumn("arrival_date", udf_datetime_from_sas("arrdate"))\
-.withColumn("departure_date", udf_datetime_from_sas("depdate"))
-
-#join country name from mapping helper table
-spark.conf.set("spark.sql.crossJoin.enabled", "true")
-i94_df_full = i94_df_full.join(country_map_df, i94_df_full.i94res == country_map_df.country_code_numeric).withColumnRenamed("country_name","residency_country").withColumnRenamed("country_code_numeric","res_country_code_numeric")
-i94_df_full = i94_df_full.join(country_map_df, i94_df_full.i94cit == country_map_df.country_code_numeric).withColumnRenamed("country_name","origin_country").withColumnRenamed("country_code_numeric","origin_country_code_numeric")
-
-print('Success!')
-
-#### CREATE TABLES ####
-
-
-print('Creating final tables...')
-
-# create immigration fact table
-i94_df_full.createOrReplaceTempView("i94")    
-immigration_fact_table = spark.sql("""
-    SELECT 
-      cicid AS id, 
-      arrival_date,
-      origin_country,
-      residency_country,
-      i94addr AS arrival_city_code,
-      i94mode AS travel_mode,
-      i94bir AS age,
-      i94visa AS reason,
-      gender,
-      airline,
-      visatype AS visa_type
-    FROM i94
-    """)
+def create_final_tables(spark, i94_data, temp_data, us_cities_data, city_map_df):
+    #immigration fact table
+    i94_data.createOrReplaceTempView("i94")    
+    immigration_fact_table = spark.sql(immigration_sql)
+    #time dimension table
+    time_dimension = spark.sql(time_sql)
+    #us_cities dimension table
+    city_map = spark.createDataFrame(city_map_df)        
+    city_map.createOrReplaceTempView("city_map")
+    us_cities_data.createOrReplaceTempView("cities")
+    us_cities_dimension = spark.sql(us_cities_sql)
+    #temperature dimension table
+    temp_data.createOrReplaceTempView("temp")
+    temp_dimension  = spark.sql(temp_sql)
+    return immigration_fact_table, us_cities_dimension, temp_dimension, time_dimension
 
 
-#create time dimension table
-time_dimension = spark.sql("""
-    SELECT
-      arrival_date AS date,
-      year(arrival_date) AS year,
-      month(arrival_date) AS month,
-      dayofmonth(arrival_date) AS day
-    FROM i94
-    GROUP BY 1,2,3,4
-    ORDER BY date DESC
-""")
+def copy_tables(immig, us_cities, temp, time):
+    print('Writing tables...')
+    immig.write.mode('overwrite').partitionBy("arrival_date").parquet("tables/immigration_fact")
+    us_cities.write.mode('overwrite').parquet("tables/us_cities_dim")
+    temp.write.mode('overwrite').partitionBy("date").parquet("tables/temperature_dim")
+    time.write.mode('overwrite').parquet("tables/time_dim")
+    print('Tables successfully copied.')
 
 
-#create us_cities dimension table
-city_dim = spark.createDataFrame(city_dim)
-city_dim.createOrReplaceTempView("city_dim")
-us_cities_df_clean.createOrReplaceTempView("cities")
-us_cities_df_clean.limit(5).toPandas()
-
-us_cities_dimension = spark.sql("""
-
-WITH city_pop AS (
-    SELECT 
-      state_code,
-      city_name,
-      SUM(male_population) AS male_population ,
-      SUM(female_population) AS female_population,
-      SUM(total_population) AS total_population,
-      SUM(foreign_born) AS foreign_born
-    FROM cities
-    GROUP BY 1,2
-)
-SELECT 
-  city_code,
-  city_name,
-  state_code,
-  state_name,
-  male_population,
-  female_population,
-  total_population,
-  foreign_born
-FROM city_pop 
-LEFT JOIN city_dim
-USING(city_name,state_code)
-WHERE city_code IS NOT NULL
-""")
+def perform_quality_checks():
+    quality_check("us_cities_dim")
+    quality_check("time_dim")
+    quality_check("immigration_fact")
+    quality_check("temperature_dim")
 
 
-#create temperature dimension table
-temp_df_clean.createOrReplaceTempView("temp")
-temp_dimension  = spark.sql("""
-  SELECT
-    country_name AS country,
-    date,
-    AVG(average_temperature) AS average_temperature
-    FROM temp
-    GROUP BY 1,2
-    ORDER BY date DESC, country
-""")
+def main():
+    spark, sc = create_spark_session()
+    temp_data = process_temperature_data(spark)
+    us_cities_data = process_us_cities_data(spark)
+    i94_data = process_i94_data(spark, sc)
+    country_map_df = process_sas_mapping_files(spark)[0]    
+    i94_data_clean = clean_i94_dataset(spark, i94_data,country_map_df)
+    city_map = process_sas_mapping_files(spark)[1]
+    immig, us_cities, temp, time = create_final_tables(spark, i94_data_clean, temp_data, us_cities_data, city_map)
+    copy_tables(immig, us_cities, temp, time)
 
 
-print('Tables successfully created!')
+if __name__ == "__main__":
+        main()
 
-#### WRITE TO S3 ####
-
-print('Writing tables to S3...')
-
-immigration_fact_table.write.mode('overwrite').partitionBy("arrival_date").parquet("s3a://aws-emr-resources-926236161117-us-west-2/capstone/immigration_fact")
-us_cities_dimension.write.mode('overwrite').parquet("s3a://aws-emr-resources-926236161117-us-west-2/capstone/us_cities_dim")
-temp_dimension.write.mode('overwrite').partitionBy("date").parquet("s3a://aws-emr-resources-926236161117-us-west-2/capstone/temperature_dim")
-time_dimension.write.mode('overwrite').parquet("s3a://aws-emr-resources-926236161117-us-west-2/capstone/time_dim")
-
-print('Tables successfully copied to S3!')
-
-
-#### READING BACK FROM S3 ####
-
-# Perform quality checks here
-def quality_check(folder):
-    """ Makes sure that records have been copied to S3"""
-    df = spark.read.parquet("s3a://aws-emr-resources-926236161117-us-west-2/capstone/"+folder)
-    result = df.count()
-    if result == 0:
-        raise ValueError("Data quality check failed for {} with zero records".format(df))
-    else:
-        print("Data quality check passed for {} with {} records".format(df, result))
-        
-quality_check("us_cities_dim")
-quality_check("time_dim")
-quality_check("immigration_fact")
-quality_check("temperature_dim")
-
-print('All done.')
