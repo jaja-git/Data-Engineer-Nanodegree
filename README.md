@@ -29,3 +29,5 @@ Combine what you've learned throughout the program.
 
 - [Capstone Project](https://github.com/jaja-git/Data-Engineer-Nanodegree/blob/main/5-Capstone/README.md)
 
+![img](udacity_certification.png)
+

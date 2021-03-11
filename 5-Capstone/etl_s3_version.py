@@ -9,8 +9,8 @@ from pyspark.sql.types import StructType, StructField, DoubleType, StringType, D
 from pyspark.sql.types import *
 from pyspark.sql.functions import udf, col, month, year, month, dayofmonth, max, desc, upper
 from datetime import datetime, timedelta
-from utils import code_mapper, set_schema, convert_datetime, quality_check
-from sql_queries import immigration_sql, time_sql, us_cities_sql, temp_sql
+from etl_utils import code_mapper, set_schema, convert_datetime, quality_check
+from etl_sql import immigration_sql, time_sql, us_cities_sql, temp_sql
 
 config = configparser.ConfigParser()
 config.read('config.cfg')
@@ -24,7 +24,8 @@ def create_spark_session():
     SparkConf()
         .set('spark.hadoop.fs.s3a.access.key', ACCESS_KEY)
         .set('spark.hadoop.fs.s3a.secret.key', SECRET_KEY)
-        .set("spark.jars.packages","saurfang:spark-sas7bdat:3.0.0-s_2.11,org.apache.hadoop:hadoop-aws:2.7.2")
+        .set("spark.jars.packages",\
+             "saurfang:spark-sas7bdat:3.0.0-s_2.11,org.apache.hadoop:hadoop-aws:2.7.2")
         .set("spark.ui.enabled","true")
 )
     sc = SparkContext(conf=conf)
@@ -101,7 +102,6 @@ def process_sas_mapping_files(spark):
 
 
 def process_i94_data(spark, sc):
-    # print('Loading i94 full data...')
     #define schema
     schema = set_schema()
     #specify folder
@@ -115,8 +115,8 @@ def process_i94_data(spark, sc):
         df = df.select(
           col("cicid").cast(T.IntegerType()), 
           col("arrdate").cast(T.DoubleType()), 
-          col("i94cit").cast(T.IntegerType()), 
-          col("i94res").cast(T.IntegerType()), 
+          col("i94cit").cast(T.StringType()), 
+          col("i94res").cast(T.StringType()), 
           col("i94port").cast(T.StringType()), 
           col("i94mode").cast(T.IntegerType()),
           col("i94addr").cast(T.StringType()), 
@@ -127,12 +127,9 @@ def process_i94_data(spark, sc):
           col("airline").cast(T.StringType()), 
           col("visatype").cast(T.StringType()))
         df = df.filter(col("i94visa")==2).filter(col("i94mode") == 1)
-#        i94_df_full = i94_df_full.unionAll(df)
-    i94_df_full = df # JUST FOR TESTING !!!
-    print('i94 data successfully loaded from SAS files.')
-    # i94_df_full.write.mode('overwrite').parquet("sas_data")
-    #read from parquet
-    # i94_df_full=spark.read.parquet("sas_data")
+        i94_df_full = i94_df_full.unionAll(df)
+    print('I94 data successfully loaded from SAS files.')
+
     return i94_df_full
 
 
@@ -154,17 +151,17 @@ def clean_i94_dataset(spark, i94_data, country_map_df):
 
 
 def create_final_tables(spark, i94_data, temp_data, us_cities_data, city_map_df):
-    # create immigration fact table
+    #immigration fact table
     i94_data.createOrReplaceTempView("i94")    
     immigration_fact_table = spark.sql(immigration_sql)
-    #create time dimension table
+    #time dimension table
     time_dimension = spark.sql(time_sql)
-    #create us_cities dimension table
+    #us_cities dimension table
     city_map = spark.createDataFrame(city_map_df)        
     city_map.createOrReplaceTempView("city_map")
     us_cities_data.createOrReplaceTempView("cities")
     us_cities_dimension = spark.sql(us_cities_sql)
-    #create temperature dimension table
+    #temperature dimension table
     temp_data.createOrReplaceTempView("temp")
     temp_dimension  = spark.sql(temp_sql)
     return immigration_fact_table, us_cities_dimension, temp_dimension, time_dimension
@@ -172,10 +169,11 @@ def create_final_tables(spark, i94_data, temp_data, us_cities_data, city_map_df)
 
 def write_to_s3(immig, us_cities, temp, time):
     print('Writing tables to S3...')
-    immig.write.mode('overwrite').partitionBy("arrival_date").parquet("tables/immigration_fact")
-    us_cities.write.mode('overwrite').parquet("tables/us_cities_dim")
-    temp.write.mode('overwrite').partitionBy("date").parquet("tables/temperature_dim")
-    time.write.mode('overwrite').parquet("tables/time_dim")
+    immig.write.mode('overwrite').partitionBy("arrival_date")\
+    .parquet("s3a://aws-emr-resources-926236161117-us-west-2/capstone/immigration_fact")
+    us_cities.write.mode('overwrite').parquet("s3a://aws-emr-resources-926236161117-us-west-2/capstone/us_cities_dim")
+    temp.write.mode('overwrite').partitionBy("date").parquet("s3a://aws-emr-resources-926236161117-us-west-2/capstone/temperature_dim")
+    time.write.mode('overwrite').parquet("s3a://aws-emr-resources-926236161117-us-west-2/capstone/time_dim")
     print('Tables successfully copied to S3.')
 
 
@@ -196,7 +194,6 @@ def main():
     city_map = process_sas_mapping_files(spark)[1]
     immig, us_cities, temp, time = create_final_tables(spark, i94_data_clean, temp_data, us_cities_data, city_map)
     write_to_s3(immig, us_cities, temp, time)
-    print('All done.')
 
 
 if __name__ == "__main__":
